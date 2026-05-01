@@ -1,0 +1,6 @@
+{
+  "name": "Stealth Visitor Bot",
+  "description": "A scheduled bot that visits target URLs at random intervals and logs results to Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

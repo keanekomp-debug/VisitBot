@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "VisitLog": {
+      "title": "Visit Log",
+      "description": "Information about a bot visit to the target URL.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "targetUrl": { "type": "string" },
+        "ip": { "type": "string" },
+        "status": { "type": "string", "enum": ["success", "error"] },
+        "errorMessage": { "type": "string" },
+        "duration": { "type": "number" }
+      },
+      "required": ["timestamp", "targetUrl", "ip", "status"]
+    }
+  },
+  "firestore": {
+    "/visit_logs/{logId}": {
+      "schema": "VisitLog",
+      "description": "Collection of all bot visits."
+    }
+  }
+}
