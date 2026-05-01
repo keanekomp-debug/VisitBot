@@ -63,12 +63,23 @@ export default function App() {
     setIsRunningAction(true);
     try {
       const res = await fetch('/api/visit/now', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to start visit');
-      alert('Visit initiated successfully!');
+      
+      // First check if the response is valid JSON
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to start visit');
+      } else {
+        // If not JSON, it's likely an HTML error page from the hosting provider
+        const text = await res.text();
+        console.error('Server returned non-JSON:', text);
+        throw new Error(`Server Error: ${res.status} ${res.statusText}. The server might be sleeping or the route is incorrect.`);
+      }
+      
+      alert('Visit initiated successfully! Check the logs in a few seconds.');
     } catch (error: any) {
-      console.error(error);
-      alert(`Error: ${error.message}`);
+      console.error('Visit Trigger Error:', error);
+      alert(`Initialization Failed: ${error.message}`);
     } finally {
       setIsRunningAction(false);
     }

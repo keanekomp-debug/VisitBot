@@ -63,14 +63,18 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  app.post("/api/visit/now", (req, res) => {
+  app.all("/api/visit/now", (req, res) => {
     // Start visit in background
     visitTarget()
       .then(() => console.log("[API] Manual visit finished"))
       .catch(err => console.error("[API] Manual visit failed", err));
     
-    // Return immediately to browser
-    res.json({ status: "initiated" });
+    // Return immediately to browser or cron service
+    res.json({ 
+      status: "initiated",
+      timestamp: new Date().toISOString(),
+      message: "Stealth protocol engaged. Visit running in background."
+    });
   });
 
   app.get("/api/plan", (req, res) => {
