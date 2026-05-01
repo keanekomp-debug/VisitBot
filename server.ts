@@ -54,7 +54,7 @@ const PORT = 3000;
 export default app;
 
 // Plan visits immediately
-planDailyVisits();
+let planningPromise = planDailyVisits();
 
 // Run scheduler every minute (This only works on persistent servers like AIS or Railway)
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
@@ -65,10 +65,17 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
 
 // API Routes
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({ 
+    status: "ok", 
+    environment: process.env.VERCEL ? "vercel" : "persistent",
+    visitsPlanned: todayVisits.length
+  });
 });
 
-app.all("/api/visit/now", (req, res) => {
+app.all("/api/visit/now", async (req, res) => {
+  // Ensure visits are planned if this is a fresh serverless cold-start
+  if (todayVisits.length === 0) await planningPromise;
+
   // Start visit in background
   visitTarget()
     .then(() => console.log("[API] Manual visit finished"))
@@ -82,7 +89,8 @@ app.all("/api/visit/now", (req, res) => {
   });
 });
 
-app.get("/api/plan", (req, res) => {
+app.get("/api/plan", async (req, res) => {
+  if (todayVisits.length === 0) await planningPromise;
   res.json({ plannedMinutes: todayVisits });
 });
 
