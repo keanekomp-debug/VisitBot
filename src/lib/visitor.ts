@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
+import { handleFirestoreError, OperationType } from './error-handler';
 
 const TARGET_URL = process.env.TARGET_URL || 'https://ohsobserver.com/can-we-do-better-than-positive-masculinity/';
 
@@ -32,29 +33,37 @@ export async function visitTarget() {
 
     const duration = Date.now() - startTime;
     
-    await addDoc(collection(db, 'visit_logs'), {
-      timestamp: new Date().toISOString(),
-      targetUrl: TARGET_URL,
-      ip: ip,
-      status: 'success',
-      duration: duration,
-      createdAt: serverTimestamp()
-    });
+    try {
+      await addDoc(collection(db, 'visit_logs'), {
+        timestamp: new Date().toISOString(),
+        targetUrl: TARGET_URL,
+        ip: ip,
+        status: 'success',
+        duration: duration,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'visit_logs');
+    }
 
     console.log(`[Visitor] Visit successful. Duration: ${duration}ms`);
   } catch (error: any) {
     const duration = Date.now() - startTime;
     const errorMessage = error.message || 'Unknown error';
     
-    await addDoc(collection(db, 'visit_logs'), {
-      timestamp: new Date().toISOString(),
-      targetUrl: TARGET_URL,
-      ip: ip,
-      status: 'error',
-      errorMessage: errorMessage,
-      duration: duration,
-      createdAt: serverTimestamp()
-    });
+    try {
+      await addDoc(collection(db, 'visit_logs'), {
+        timestamp: new Date().toISOString(),
+        targetUrl: TARGET_URL,
+        ip: ip,
+        status: 'error',
+        errorMessage: errorMessage,
+        duration: duration,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+       handleFirestoreError(e, OperationType.WRITE, 'visit_logs');
+    }
 
     console.error(`[Visitor] Visit failed: ${errorMessage}`);
   }

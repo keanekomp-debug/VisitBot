@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { format } from 'date-fns';
+import { handleFirestoreError, OperationType } from './lib/error-handler';
 
 interface VisitLog {
   id: string;
@@ -45,6 +46,8 @@ export default function App() {
       })) as VisitLog[];
       setLogs(newLogs);
       setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'visit_logs');
     });
 
     // Fetch planned visits
