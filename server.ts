@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import cron from "node-cron";
 import dotenv from "dotenv";
@@ -46,41 +47,46 @@ async function checkAndRunVisitor() {
   }
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = 3000;
 
-  // Plan visits immediately on start
-  await planDailyVisits();
+// Export app for Vercel
+export default app;
 
-  // Run scheduler every minute
+// Plan visits immediately
+planDailyVisits();
+
+// Run scheduler every minute (This only works on persistent servers like AIS or Railway)
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   cron.schedule("* * * * *", () => {
     checkAndRunVisitor().catch(err => console.error("[Scheduler Error]", err));
   });
+}
 
-  // API Routes
-  app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+// API Routes
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.all("/api/visit/now", (req, res) => {
+  // Start visit in background
+  visitTarget()
+    .then(() => console.log("[API] Manual visit finished"))
+    .catch(err => console.error("[API] Manual visit failed", err));
+  
+  // Return immediately to browser or cron service
+  res.json({ 
+    status: "initiated",
+    timestamp: new Date().toISOString(),
+    message: "Stealth protocol engaged. Visit running in background."
   });
+});
 
-  app.all("/api/visit/now", (req, res) => {
-    // Start visit in background
-    visitTarget()
-      .then(() => console.log("[API] Manual visit finished"))
-      .catch(err => console.error("[API] Manual visit failed", err));
-    
-    // Return immediately to browser or cron service
-    res.json({ 
-      status: "initiated",
-      timestamp: new Date().toISOString(),
-      message: "Stealth protocol engaged. Visit running in background."
-    });
-  });
+app.get("/api/plan", (req, res) => {
+  res.json({ plannedMinutes: todayVisits });
+});
 
-  app.get("/api/plan", (req, res) => {
-    res.json({ plannedMinutes: todayVisits });
-  });
-
+async function setupAndStart() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
@@ -90,15 +96,20 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // Only listen if we are NOT on Vercel (Vercel manages the listener)
+  if (!process.env.VERCEL) {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+setupAndStart();

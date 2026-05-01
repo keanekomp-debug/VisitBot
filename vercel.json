@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/server.ts"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/visit/now",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
