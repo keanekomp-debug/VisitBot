@@ -30,14 +30,17 @@ service cloud.firestore {
     }
 
     match /visit_logs/{logId} {
-      // Allow anybody to read for the dashboard (can restrict later if needed)
+      // Allow anybody to read for the dashboard
       allow read: if true;
       
-      // Allow write if admin OR if it's a valid log (for the bot)
-      // In a real production app, you'd use a service account for the bot.
-      // Here, we'll allow it if it's a valid log for now, but ideally we'd use auth.
+      // Allow write if it's a valid log for the bot
       allow create: if isValidVisitLog(request.resource.data);
       allow update, delete: if isAdmin();
+    }
+
+    // Allow connection test
+    match /test/connection {
+      allow read: if true;
     }
   }
 }
