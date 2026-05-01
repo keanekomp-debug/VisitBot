@@ -2,9 +2,12 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import cron from "node-cron";
+import dotenv from "dotenv";
 import { visitTarget } from "./src/lib/visitor";
 import { collection, query, orderBy, limit, getDocs, where, addDoc } from "firebase/firestore";
 import { db } from "./src/lib/firebase";
+
+dotenv.config();
 
 // State to hold today's planned visits
 let todayVisits: number[] = [];
@@ -60,13 +63,14 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  app.post("/api/visit/now", async (req, res) => {
-    try {
-      await visitTarget();
-      res.json({ status: "initiated" });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
+  app.post("/api/visit/now", (req, res) => {
+    // Start visit in background
+    visitTarget()
+      .then(() => console.log("[API] Manual visit finished"))
+      .catch(err => console.error("[API] Manual visit failed", err));
+    
+    // Return immediately to browser
+    res.json({ status: "initiated" });
   });
 
   app.get("/api/plan", (req, res) => {

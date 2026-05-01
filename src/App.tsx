@@ -63,10 +63,12 @@ export default function App() {
     setIsRunningAction(true);
     try {
       const res = await fetch('/api/visit/now', { method: 'POST' });
-      if (!res.ok) throw new Error('Failed to start visit');
-    } catch (error) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start visit');
+      alert('Visit initiated successfully!');
+    } catch (error: any) {
       console.error(error);
-      alert('Failed to trigger visit');
+      alert(`Error: ${error.message}`);
     } finally {
       setIsRunningAction(false);
     }
